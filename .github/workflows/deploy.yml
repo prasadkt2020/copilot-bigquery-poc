@@ -24,7 +24,7 @@ jobs:
 
     - name: Build and push container
       run: |
-        gcloud builds submit --tag us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api
+        gcloud builds submit backend-api --tag us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api
 
     - name: Deploy to Cloud Run
       run: |
