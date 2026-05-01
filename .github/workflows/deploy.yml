@@ -1,0 +1,26 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: copilot-bigquery-demo
+        service_account_key: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy copilot-bigquery-api \
+          --source backend-api \
+          --region us-central1 \
+          --allow-unauthenticated
