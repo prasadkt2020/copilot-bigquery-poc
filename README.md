@@ -55,6 +55,7 @@ BigQuery IAM	Dataset/table access restricted to service account
 
 
 **5. End‑to‑End User Journey (Sales Rep Experience)**
+
 1. Sales Rep asks a question in Teams
 Example:
 
@@ -101,6 +102,7 @@ Charlie – 300
 The Sales Rep sees a clean, conversational answer.
 
 **6. Components Implemented**
+
 Component	Status
 Cloud Run API	✔ Done
 BigQuery Dataset + Table	✔ Done
@@ -114,6 +116,7 @@ Audit Logging Review	Pending
 
 
 **7. What This Demo Proves**
+
 Teams can securely access enterprise data without direct database connectivity.
 
 Copilot can act as a secure, identity‑aware client.
@@ -125,6 +128,7 @@ Cloud Run can securely access BigQuery using service accounts.
 Zero‑trust, least‑privilege patterns can be implemented using only free‑tier cloud components.
 
 **8. Ideal Use Cases**
+
 Secure enterprise data access from Teams
 
 Copilot‑powered business insights
