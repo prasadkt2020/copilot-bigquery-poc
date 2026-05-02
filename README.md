@@ -31,7 +31,8 @@ BigQuery (Dataset + Table)
         ▼
 Cloud Run → Copilot → Teams (Response)
 
-**4. Security Model
+**4. Security Model**
+
 **Zero‑Trust Principles
 Identity is the boundary — Entra ID issues and Cloud Run validates all tokens.
 
