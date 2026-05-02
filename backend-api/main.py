@@ -6,7 +6,10 @@ app = Flask(__name__)
 
 @app.route("/")
 def root():
-    return jsonify({"status": "ok", "message": "Cloud Run API is running"})
+    return jsonify({
+        "status": "ok",
+        "message": "Cloud Run API is running"
+    })
 
 
 @app.route("/test")
@@ -22,6 +25,26 @@ def test_bigquery():
 
     result = [dict(row) for row in rows]
     return jsonify({"result": result})
+
+
+@app.route("/list")
+def list_rows():
+    """
+    Lists rows from a BigQuery table.
+    Replace dataset.table with your actual table.
+    """
+    client = bigquery.Client()
+
+    query = """
+        SELECT *
+        FROM `copilot-bigquery-demo.sample_dataset.sample_table`
+        LIMIT 10
+    """
+
+    rows = client.query(query).result()
+    result = [dict(row) for row in rows]
+
+    return jsonify({"rows": result})
 
 
 # Cloud Run entrypoint
