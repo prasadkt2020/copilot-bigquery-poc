@@ -1,6 +1,5 @@
-# Secure Teams‑to‑BigQuery Access Engine
+# Identity‑Driven, Zero‑Trust Data Access via Copilot, Entra ID, Cloud Run, and BigQuery
 
-Identity‑Driven, Zero‑Trust Data Access via Copilot, Entra ID, Cloud Run, and BigQuery
 **1. Overview**
 This project demonstrates a fully secure, identity‑driven architecture that enables a Sales Rep to retrieve business data from BigQuery directly from Microsoft Teams, without exposing databases, credentials, or backend systems. The solution uses Teams, a custom Copilot Agent, Entra ID OAuth2, a Cloud Run API, and BigQuery to create a zero‑trust, least‑privilege data access pipeline. All components run on free‑tier cloud services, making this an accessible yet enterprise‑grade reference implementation.
 
