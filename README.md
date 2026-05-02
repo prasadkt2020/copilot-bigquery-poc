@@ -1,12 +1,15 @@
 # Identity‑Driven, Zero‑Trust Data Access via Copilot, Entra ID, Cloud Run, and BigQuery
 
 **1. Overview**
+
 This project demonstrates a fully secure, identity‑driven architecture that enables a Sales Rep to retrieve business data from BigQuery directly from Microsoft Teams, without exposing databases, credentials, or backend systems. The solution uses Teams, a custom Copilot Agent, Entra ID OAuth2, a Cloud Run API, and BigQuery to create a zero‑trust, least‑privilege data access pipeline. All components run on free‑tier cloud services, making this an accessible yet enterprise‑grade reference implementation.
 
 **2. Scope**
+
 This demo showcases the complete, secure journey of a Sales Rep asking a question in Teams and receiving data from BigQuery through a hardened, identity‑validated API. When the user interacts with Teams, the message is routed to a Copilot Agent, which obtains an Entra ID–issued JWT token and securely calls a Cloud Run API. Cloud Run validates the token, uses its own service account identity to query BigQuery, and returns only authorized data back to Copilot, which formats the response for the user. The scope includes the end‑to‑end flow, identity enforcement, secure API mediation, BigQuery access via service accounts, and auditability, all implemented using free‑tier cloud components.
 
 **3. Architecture Summary**
+
 Code
 Sales Rep (Teams)
         │
