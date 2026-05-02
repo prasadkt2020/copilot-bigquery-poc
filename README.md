@@ -2,4 +2,4 @@
 
 Trigger deployment
 
-commit to main branch...
+commit to the main branch
