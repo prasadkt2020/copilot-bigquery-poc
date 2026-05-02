@@ -1,22 +1,30 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, jsonify
 from google.cloud import bigquery
 
 app = Flask(__name__)
 
-client = bigquery.Client.from_service_account_json(
-    "service-account.json",
-    project="copilot-bigquery-demo"
-)
+@app.route("/")
+def root():
+    return jsonify({"status": "ok", "message": "Cloud Run API is running"})
 
-@app.post("/query")
-def run_query():
-    try:
-        sql = request.json.get("sql")
-        query_job = client.query(sql)
-        rows = [dict(row) for row in query_job]
-        return jsonify(rows)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
+@app.route("/test")
+def test_bigquery():
+    """
+    Simple BigQuery test endpoint.
+    Confirms Cloud Run → BigQuery connectivity using service account.
+    """
+    client = bigquery.Client()
+
+    query = "SELECT 1 AS test"
+    rows = client.query(query).result()
+
+    result = [dict(row) for row in rows]
+    return jsonify({"result": result})
+
+
+# Cloud Run entrypoint
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
