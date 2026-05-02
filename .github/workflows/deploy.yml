@@ -24,12 +24,14 @@ jobs:
 
     - name: Build and push container
       run: |
-        gcloud builds submit backend-api --tag us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api
+        gcloud builds submit backend-api \
+          --tag us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api:latest
 
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy copilot-bigquery-api \
-          --image us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api \
-          --platform managed \
+          --image us-central1-docker.pkg.dev/copilot-bigquery-demo/cloud-run-source-deploy/backend-api:latest \
           --region us-central1 \
-          --allow-unauthenticated
+          --platform managed \
+          --allow-unauthenticated \
+          --service-account bigquery-copilot-sa@copilot-bigquery-demo.iam.gserviceaccount.com
