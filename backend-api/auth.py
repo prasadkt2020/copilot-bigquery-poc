@@ -1,57 +1,72 @@
+# auth.py
+import os
+import jwt
 import requests
-from jose import jwt
 from flask import request, abort
 
-TENANT_ID = "810d0f9b-27ba-42c7-9718-f32165fc074b"
+TENANT_ID = os.getenv("TENANT_ID")
+AUDIENCE = os.getenv("AUDIENCE")
 
-# Accept v1.0 tokens (your tenant issues only these)
-ISSUER = f"https://sts.windows.net/{TENANT_ID}/"
+DISCOVERY_URL = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration"
 
-# Your API App Registration audience
-AUDIENCE = "api://c20b71e8-4c6f-4da7-87d6-af25118c25b6"
+_discovery_cache = None
+_jwks_cache = None
 
-# JWKS endpoint for v1.0 tokens
-JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/keys"
 
-_cached_jwks = None
+def get_discovery():
+    global _discovery_cache
+    if _discovery_cache:
+        return _discovery_cache
+    resp = requests.get(DISCOVERY_URL, timeout=5)
+    resp.raise_for_status()
+    _discovery_cache = resp.json()
+    return _discovery_cache
+
 
 def get_jwks():
-    global _cached_jwks
-    if _cached_jwks is None:
-        resp = requests.get(JWKS_URL, timeout=5)
-        resp.raise_for_status()
-        _cached_jwks = resp.json()
-    return _cached_jwks
+    global _jwks_cache
+    if _jwks_cache:
+        return _jwks_cache
+    jwks_uri = get_discovery()["jwks_uri"]
+    resp = requests.get(jwks_uri, timeout=5)
+    resp.raise_for_status()
+    _jwks_cache = resp.json()
+    return _jwks_cache
+
+
+def get_public_key(kid):
+    jwks = get_jwks()
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return jwt.algorithms.RSAAlgorithm.from_jwk(key)
+    return None
 
 
 def validate_token():
-    auth_header = request.headers.get("Authorization", None)
-    if not auth_header:
-        abort(401, "Missing Authorization header")
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        abort(401, "Missing or invalid Authorization header")
 
-    if not auth_header.startswith("Bearer "):
-        abort(401, "Invalid Authorization header format")
-
-    token = auth_header.replace("Bearer ", "")
+    token = auth_header.split(" ")[1]
 
     try:
-        jwks = get_jwks()
         unverified_header = jwt.get_unverified_header(token)
+    except Exception:
+        abort(401, "Invalid token header")
 
-        key = next(
-            k for k in jwks["keys"]
-            if k["kid"] == unverified_header["kid"]
-        )
+    public_key = get_public_key(unverified_header.get("kid"))
+    if not public_key:
+        abort(401, "Unable to find matching JWKS key")
 
-        payload = jwt.decode(
+    try:
+        decoded = jwt.decode(
             token,
-            key,
+            public_key,
             algorithms=["RS256"],
             audience=AUDIENCE,
-            issuer=ISSUER
+            issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
         )
-
-        return payload
-
+        return decoded
     except Exception as e:
-        abort(401, f"Invalid token: {str(e)}")
+        print("Token validation error:", e)
+        abort(401, "Invalid token")
