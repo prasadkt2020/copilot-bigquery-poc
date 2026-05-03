@@ -1,7 +1,7 @@
 import os
 from flask import Flask, jsonify
 from google.cloud import bigquery
-from auth import validate_token   # <-- ADD THIS
+from auth import validate_token
 
 app = Flask(__name__)
 
@@ -18,7 +18,7 @@ def root():
 
 @app.route("/test")
 def test_bigquery():
-    validate_token()  # <-- ADD THIS
+    validate_token()
 
     query = "SELECT 1 AS test"
     rows = bq.query(query).result()
@@ -29,7 +29,7 @@ def test_bigquery():
 
 @app.route("/list")
 def list_rows():
-    validate_token()  # <-- ADD THIS
+    validate_token()
 
     query = """
         SELECT *
