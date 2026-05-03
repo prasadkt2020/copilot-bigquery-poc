@@ -1,6 +1,7 @@
 import os
 from flask import Flask, jsonify
 from google.cloud import bigquery
+from auth import validate_token   # <-- ADD THIS
 
 app = Flask(__name__)
 
@@ -17,10 +18,8 @@ def root():
 
 @app.route("/test")
 def test_bigquery():
-    """
-    Simple BigQuery test endpoint.
-    Confirms Cloud Run → BigQuery connectivity using service account.
-    """
+    validate_token()  # <-- ADD THIS
+
     query = "SELECT 1 AS test"
     rows = bq.query(query).result()
     result = [dict(row) for row in rows]
@@ -30,9 +29,8 @@ def test_bigquery():
 
 @app.route("/list")
 def list_rows():
-    """
-    Lists rows from your BigQuery table.
-    """
+    validate_token()  # <-- ADD THIS
+
     query = """
         SELECT *
         FROM `copilot-bigquery-demo.sample_dataset.sample_table`
