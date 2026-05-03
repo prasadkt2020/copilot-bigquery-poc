@@ -7,7 +7,21 @@ AUDIENCE = "api://8fbdfb12-b319-442a-b894-bf837f18dee5"
 ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
 
 JWKS_URL = f"{ISSUER}/discovery/v2.0/keys"
-JWKS = requests.get(JWKS_URL).json()
+
+_cached_jwks = None
+
+def get_jwks():
+    global _cached_jwks
+    if _cached_jwks is None:
+        try:
+            resp = requests.get(JWKS_URL, timeout=5)
+            resp.raise_for_status()
+            _cached_jwks = resp.json()
+        except Exception:
+            # Never crash the app on JWKS failure
+            _cached_jwks = {"keys": []}
+    return _cached_jwks
+
 
 def validate_token():
     auth_header = request.headers.get("Authorization", None)
@@ -20,10 +34,11 @@ def validate_token():
     token = auth_header.replace("Bearer ", "")
 
     try:
+        jwks = get_jwks()
         unverified_header = jwt.get_unverified_header(token)
 
         key = next(
-            k for k in JWKS["keys"]
+            k for k in jwks["keys"]
             if k["kid"] == unverified_header["kid"]
         )
 
