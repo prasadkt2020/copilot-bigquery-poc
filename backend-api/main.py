@@ -4,6 +4,9 @@ from google.cloud import bigquery
 
 app = Flask(__name__)
 
+# Initialize BigQuery client once (best practice for Cloud Run)
+bq = bigquery.Client()
+
 @app.route("/")
 def root():
     return jsonify({
@@ -18,33 +21,32 @@ def test_bigquery():
     Simple BigQuery test endpoint.
     Confirms Cloud Run → BigQuery connectivity using service account.
     """
-    client = bigquery.Client()
-
     query = "SELECT 1 AS test"
-    rows = client.query(query).result()
-
+    rows = bq.query(query).result()
     result = [dict(row) for row in rows]
+
     return jsonify({"result": result})
 
 
 @app.route("/list")
 def list_rows():
     """
-    Lists rows from a BigQuery table.
-    Replace dataset.table with your actual table.
+    Lists rows from your BigQuery table.
     """
-    client = bigquery.Client()
-
     query = """
         SELECT *
         FROM `copilot-bigquery-demo.sample_dataset.sample_table`
         LIMIT 10
     """
 
-    rows = client.query(query).result()
+    rows = bq.query(query).result()
     result = [dict(row) for row in rows]
 
-    return jsonify({"rows": result})
+    return jsonify({
+        "status": "ok",
+        "row_count": len(result),
+        "rows": result
+    })
 
 
 # Cloud Run entrypoint
