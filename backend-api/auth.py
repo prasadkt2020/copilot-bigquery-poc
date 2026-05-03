@@ -1,8 +1,9 @@
 # auth.py
 import os
-import jwt
+from jose import jwt
 import requests
 from flask import request, abort
+
 
 TENANT_ID = os.getenv("TENANT_ID")
 AUDIENCE = os.getenv("AUDIENCE")
