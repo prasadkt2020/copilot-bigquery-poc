@@ -1,53 +1,26 @@
+# main.py
 import os
-from flask import Flask, jsonify
-from google.cloud import bigquery
+from flask import Flask, request, abort, jsonify
 from auth import validate_token
 
 app = Flask(__name__)
 
-# Initialize BigQuery client once (best practice for Cloud Run)
-bq = bigquery.Client()
-
-@app.route("/")
-def root():
-    return jsonify({
-        "status": "ok",
-        "message": "Cloud Run API is running"
-    })
+API_KEY = os.getenv("API_KEY")  # simple shared secret for PoC
 
 
-@app.route("/test")
-def test_bigquery():
-    validate_token()
-
-    query = "SELECT 1 AS test"
-    rows = bq.query(query).result()
-    result = [dict(row) for row in rows]
-
-    return jsonify({"result": result})
+def check_api_key():
+    expected = API_KEY
+    if not expected:
+        return  # disabled if not set
+    provided = request.headers.get("x-api-key")
+    if provided != expected:
+        abort(401, "Invalid API key")
 
 
-@app.route("/list")
-def list_rows():
-    validate_token()
-
-    query = """
-        SELECT *
-        FROM `copilot-bigquery-demo.sample_dataset.sample_table`
-        LIMIT 10
-    """
-
-    rows = bq.query(query).result()
-    result = [dict(row) for row in rows]
-
-    return jsonify({
-        "status": "ok",
-        "row_count": len(result),
-        "rows": result
-    })
-
-
-# Cloud Run entrypoint
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+@app.route("/orders", methods=["GET"])
+def get_orders():
+    check_api_key()
+    claims = validate_token()
+    oid = claims.get("oid")
+    # ... your existing BigQuery + RLS logic ...
+    return jsonify([])  # placeholder
