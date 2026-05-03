@@ -1,10 +1,13 @@
 # main.py
+# main.py
 from flask import Flask, jsonify, abort
 from google.cloud import bigquery
 from auth import validate_token
 
 app = Flask(__name__)
-bq = bigquery.Client()
+
+def get_bq():
+    return bigquery.Client()
 
 PROJECT = "copilot-bigquery-demo"
 DATA_TABLE = f"{PROJECT}.sample_dataset.sample_table"
@@ -33,7 +36,7 @@ def get_orders():
         ORDER BY id
     """
 
-    job = bq.query(
+    job = get_bq().query(
         query,
         job_config=bigquery.QueryJobConfig(
             query_parameters=[
