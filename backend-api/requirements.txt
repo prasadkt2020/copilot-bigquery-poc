@@ -3,4 +3,6 @@ werkzeug>=3.0.0
 google-cloud-bigquery
 PyJWT
 requests
+python-jose
+gunicorn==21.2.0
 
