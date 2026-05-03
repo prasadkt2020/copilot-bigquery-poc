@@ -2,25 +2,25 @@ import requests
 from jose import jwt
 from flask import request, abort
 
-# Your tenant + API audience
 TENANT_ID = "810d0f9b-27ba-42c7-9718-f32165fc074b"
+
+# Accept v1.0 tokens (your tenant issues only these)
+ISSUER = f"https://sts.windows.net/{TENANT_ID}/"
+
+# Your API App Registration audience
 AUDIENCE = "api://c20b71e8-4c6f-4da7-87d6-af25118c25b6"
-ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
 
-JWKS_URL = f"{ISSUER}/discovery/v2.0/keys"
+# JWKS endpoint for v1.0 tokens
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/keys"
 
-# Cache JWKS so Cloud Run doesn't fetch on every request
 _cached_jwks = None
 
 def get_jwks():
     global _cached_jwks
     if _cached_jwks is None:
-        try:
-            resp = requests.get(JWKS_URL, timeout=5)
-            resp.raise_for_status()
-            _cached_jwks = resp.json()
-        except Exception:
-            _cached_jwks = {"keys": []}
+        resp = requests.get(JWKS_URL, timeout=5)
+        resp.raise_for_status()
+        _cached_jwks = resp.json()
     return _cached_jwks
 
 
