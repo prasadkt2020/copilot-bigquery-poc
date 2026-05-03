@@ -2,12 +2,14 @@ import requests
 from jose import jwt
 from flask import request, abort
 
+# Your tenant + API audience
 TENANT_ID = "810d0f9b-27ba-42c7-9718-f32165fc074b"
-AUDIENCE = "api://8fbdfb12-b319-442a-b894-bf837f18dee5"
+AUDIENCE = "api://c20b71e8-4c6f-4da7-87d6-af25118c25b6"
 ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
 
 JWKS_URL = f"{ISSUER}/discovery/v2.0/keys"
 
+# Cache JWKS so Cloud Run doesn't fetch on every request
 _cached_jwks = None
 
 def get_jwks():
@@ -18,7 +20,6 @@ def get_jwks():
             resp.raise_for_status()
             _cached_jwks = resp.json()
         except Exception:
-            # Never crash the app on JWKS failure
             _cached_jwks = {"keys": []}
     return _cached_jwks
 
