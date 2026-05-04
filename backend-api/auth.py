@@ -1,7 +1,6 @@
 # backend-api/auth.py
 import os
 import time
-import json
 import requests
 import jwt
 from jwt import PyJWKClient
@@ -48,7 +47,6 @@ def validate_jwt(auth_header: str) -> Dict[str, Any]:
             issuer=ISSUER,
         )
 
-        # Optional: extra sanity checks
         now = int(time.time())
         if claims.get("exp") and now > claims["exp"]:
             raise AuthError("Token expired")
