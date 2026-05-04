@@ -1,58 +1,61 @@
-# auth.py
+# backend-api/auth.py
 import os
-from jose import jwt
+import time
+import json
 import requests
+import jwt
+from jwt import PyJWKClient
+from typing import Dict, Any
 
-TENANT_ID = os.getenv("TENANT_ID")
-AUDIENCE = os.getenv("AUDIENCE")
+TENANT_ID = os.getenv("TENANT_ID", "810d0f9b-27ba-42c7-9718-f32165fc074b")
+API_APP_ID = os.getenv("API_APP_ID", "732af741-d74a-44ce-bd01-1e6a76040b17")
 
-DISCOVERY_URL = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration"
+ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
+JWKS_URL = f"{ISSUER}/discovery/v2.0/keys"
+AUDIENCE = f"api://{API_APP_ID}"
 
-_discovery_cache = None
-_jwks_cache = None
-
-
-def get_discovery():
-    global _discovery_cache
-    if _discovery_cache is None:
-        resp = requests.get(DISCOVERY_URL, timeout=5)
-        resp.raise_for_status()
-        _discovery_cache = resp.json()
-    return _discovery_cache
+_jwks_client = PyJWKClient(JWKS_URL)
 
 
-def get_jwks():
-    global _jwks_cache
-    if _jwks_cache is None:
-        jwks_uri = get_discovery()["jwks_uri"]
-        resp = requests.get(jwks_uri, timeout=5)
-        resp.raise_for_status()
-        _jwks_cache = resp.json()
-    return _jwks_cache
+class AuthError(Exception):
+    pass
 
 
-def get_public_key(kid):
-    jwks = get_jwks()
-    for key in jwks.get("keys", []):
-        if key.get("kid") == kid:
-            return jwt.algorithms.RSAAlgorithm.from_jwk(key)
-    return None
+def _get_bearer_token(auth_header: str) -> str:
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        raise AuthError("Missing or invalid Authorization header")
+    return auth_header.split(" ", 1)[1].strip()
 
 
-def verify_jwt_and_get_email(token):
-    unverified_header = jwt.get_unverified_header(token)
-    kid = unverified_header.get("kid")
+def validate_jwt(auth_header: str) -> Dict[str, Any]:
+    """
+    Validates an Entra ID JWT:
+    - Extracts Bearer token
+    - Fetches signing key from JWKS
+    - Validates signature, issuer, audience, expiry
+    Returns decoded claims if valid, raises AuthError otherwise.
+    """
+    token = _get_bearer_token(auth_header)
 
-    public_key = get_public_key(kid)
-    if not public_key:
-        raise Exception("Unable to find matching JWKS key")
+    try:
+        signing_key = _jwks_client.get_signing_key_from_jwt(token).key
 
-    decoded = jwt.decode(
-        token,
-        public_key,
-        algorithms=["RS256"],
-        audience=AUDIENCE,
-        issuer=f"https://login.microsoftonline.com/{TENANT_ID}/v2.0",
-    )
+        claims = jwt.decode(
+            token,
+            signing_key,
+            algorithms=["RS256"],
+            audience=AUDIENCE,
+            issuer=ISSUER,
+        )
 
-    return decoded.get("preferred_username") or decoded.get("email")
+        # Optional: extra sanity checks
+        now = int(time.time())
+        if claims.get("exp") and now > claims["exp"]:
+            raise AuthError("Token expired")
+
+        return claims
+
+    except jwt.ExpiredSignatureError:
+        raise AuthError("Token expired")
+    except jwt.InvalidTokenError as e:
+        raise AuthError(f"Invalid token: {str(e)}")
