@@ -6,6 +6,7 @@ from auth import validate_jwt, AuthError
 app = Flask(__name__)
 bq_client = bigquery.Client()
 
+
 @app.route("/list", methods=["GET"])
 def list_sales():
     auth_header = request.headers.get("Authorization", "")
@@ -19,7 +20,6 @@ def list_sales():
     if not oid:
         return jsonify({"error": "Missing oid in token"}), 403
 
-    # Example BigQuery join using oid → securityhash
     query = """
     SELECT s.*
     FROM `copilot-bigquery-demo.sample_dataset.sample_table` s
@@ -44,3 +44,8 @@ def list_sales():
 @app.route("/healthz", methods=["GET"])
 def healthz():
     return "OK", 200
+
+
+# ⭐ THIS WAS THE MISSING PIECE ⭐
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000, debug=True)
