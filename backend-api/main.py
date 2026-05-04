@@ -1,9 +1,10 @@
-# backend-api/main.py
-from flask import Flask, request, jsonify
-from google.cloud import bigquery
+from flask import Flask, jsonify, request
 from auth import validate_jwt, AuthError
+from google.cloud import bigquery
 
 app = Flask(__name__)
+
+# BigQuery client
 bq_client = bigquery.Client()
 
 
@@ -18,34 +19,21 @@ def list_sales():
 
     oid = claims.get("oid") or claims.get("sub")
     if not oid:
-        return jsonify({"error": "Missing oid in token"}), 403
+        return jsonify({"error": "No OID found in token"}), 401
 
-    query = """
-    SELECT s.*
-    FROM `copilot-bigquery-demo.sample_dataset.sample_table` s
-    JOIN `copilot-bigquery-demo.security_manual.manual_rls` r
-      ON s.securityhash = r.securityhash
-    WHERE r.oid = @oid
+    query = f"""
+        SELECT s.*
+        FROM `sales_data.sales` s
+        JOIN `sales_data.user_access` u
+        ON s.region = u.region
+        WHERE u.oid = '{oid}'
     """
 
-    job = bq_client.query(
-        query,
-        job_config=bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("oid", "STRING", oid)
-            ]
-        ),
-    )
+    query_job = bq_client.query(query)
+    rows = [dict(row) for row in query_job]
 
-    rows = [dict(row) for row in job.result()]
-    return jsonify(rows), 200
+    return jsonify(rows)
 
 
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    return "OK", 200
-
-
-# ⭐ THIS WAS THE MISSING PIECE ⭐
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
