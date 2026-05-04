@@ -1,69 +1,46 @@
+# backend-api/main.py
 from flask import Flask, request, jsonify
 from google.cloud import bigquery
-from auth import verify_jwt_and_get_email
+from auth import validate_jwt, AuthError
 
-# Lazy global client (created only on first request)
-bq_client = None
+app = Flask(__name__)
+bq_client = bigquery.Client()
 
-def get_bq_client():
-    global bq_client
-    if bq_client is None:
-        bq_client = bigquery.Client()
-    return bq_client
+@app.route("/list", methods=["GET"])
+def list_sales():
+    auth_header = request.headers.get("Authorization", "")
 
+    try:
+        claims = validate_jwt(auth_header)
+    except AuthError as e:
+        return jsonify({"error": str(e)}), 401
 
-def create_app():
-    app = Flask(__name__)
+    oid = claims.get("oid") or claims.get("sub")
+    if not oid:
+        return jsonify({"error": "Missing oid in token"}), 403
 
-    # ----------------------------------------------------------------------
-    # Health check endpoint (fast, no dependencies)
-    # ----------------------------------------------------------------------
-    @app.route("/healthz")
-    def healthz():
-        return "ok", 200
+    # Example BigQuery join using oid → securityhash
+    query = """
+    SELECT s.*
+    FROM `copilot-bigquery-demo.sample_dataset.sample_table` s
+    JOIN `copilot-bigquery-demo.security_manual.manual_rls` r
+      ON s.securityhash = r.securityhash
+    WHERE r.oid = @oid
+    """
 
-    # ----------------------------------------------------------------------
-    # Orders endpoint
-    # ----------------------------------------------------------------------
-    @app.route("/orders", methods=["GET"])
-    def get_orders():
-        # Extract JWT from Authorization header
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return jsonify({"error": "Missing or invalid Authorization header"}), 401
-
-        token = auth_header.split(" ", 1)[1]
-
-        # Validate JWT and extract email
-        try:
-            user_email = verify_jwt_and_get_email(token)
-        except Exception as e:
-            return jsonify({"error": f"Invalid token: {str(e)}"}), 401
-
-        # Build BigQuery query with RLS
-        query = f"""
-            SELECT *
-            FROM `copilot-bigquery-demo.sales.orders`
-            WHERE customer_email = @user_email
-            LIMIT 100
-        """
-
-        client = get_bq_client()
-
-        job_config = bigquery.QueryJobConfig(
+    job = bq_client.query(
+        query,
+        job_config=bigquery.QueryJobConfig(
             query_parameters=[
-                bigquery.ScalarQueryParameter("user_email", "STRING", user_email)
+                bigquery.ScalarQueryParameter("oid", "STRING", oid)
             ]
-        )
+        ),
+    )
 
-        # Execute query
-        query_job = client.query(query, job_config=job_config)
-        rows = [dict(row) for row in query_job]
-
-        return jsonify({"email": user_email, "orders": rows}), 200
-
-    return app
+    rows = [dict(row) for row in job.result()]
+    return jsonify(rows), 200
 
 
-# Gunicorn entrypoint
-app = create_app()
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return "OK", 200
