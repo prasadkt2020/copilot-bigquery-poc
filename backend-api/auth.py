@@ -15,19 +15,12 @@ class AuthError(Exception):
 
 
 def _get_bearer_token(auth_header: str) -> str:
-    """
-    Extracts the Bearer token from the Authorization header.
-    """
     if not auth_header or not auth_header.startswith("Bearer "):
         raise AuthError("Missing or invalid Authorization header")
     return auth_header.split(" ", 1)[1]
 
 
 def validate_jwt(auth_header: str) -> dict:
-    """
-    Validates the JWT using Microsoft Entra ID JWKS.
-    Returns decoded claims if valid, raises AuthError otherwise.
-    """
     token = _get_bearer_token(auth_header)
 
     try:
@@ -37,7 +30,7 @@ def validate_jwt(auth_header: str) -> dict:
             token,
             signing_key,
             algorithms=["RS256"],
-            audience="732af741-d74a-44ce-bd01-1e6a76040b17",  # API App ID
+            audience="732af741-d74a-44ce-bd01-1e6a76040b17",
             options={"verify_exp": True},
         )
         return claims
