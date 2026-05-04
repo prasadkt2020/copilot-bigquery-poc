@@ -30,7 +30,7 @@ def validate_jwt(auth_header: str) -> dict:
             token,
             signing_key,
             algorithms=["RS256"],
-            audience="732af741-d74a-44ce-bd01-1e6a76040b17",
+            audience="732af741-d74a-44ce-bd01-1e6a76040b17",  # Your API App ID
             options={"verify_exp": True},
         )
         return claims
