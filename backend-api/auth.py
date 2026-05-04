@@ -1,17 +1,11 @@
-# backend-api/auth.py
-import os
-import time
-import requests
 import jwt
 from jwt import PyJWKClient
-from typing import Dict, Any
+from flask import request
 
-TENANT_ID = os.getenv("TENANT_ID", "810d0f9b-27ba-42c7-9718-f32165fc074b")
-API_APP_ID = os.getenv("API_APP_ID", "732af741-d74a-44ce-bd01-1e6a76040b17")
+TENANT_ID = "810d0f9b-27ba-42c7-9718-f32165fc074b"
 
-ISSUER = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0"
-JWKS_URL = f"{ISSUER}/discovery/v2.0/keys"
-AUDIENCE = f"api://{API_APP_ID}"
+# Correct JWKS URL for Microsoft Entra ID
+JWKS_URL = f"https://login.microsoftonline.com/{TENANT_ID}/discovery/v2.0/keys"
 
 _jwks_client = PyJWKClient(JWKS_URL)
 
@@ -21,17 +15,17 @@ class AuthError(Exception):
 
 
 def _get_bearer_token(auth_header: str) -> str:
-    if not auth_header or not auth_header.lower().startswith("bearer "):
-        raise AuthError("Missing or invalid Authorization header")
-    return auth_header.split(" ", 1)[1].strip()
-
-
-def validate_jwt(auth_header: str) -> Dict[str, Any]:
     """
-    Validates an Entra ID JWT:
-    - Extracts Bearer token
-    - Fetches signing key from JWKS
-    - Validates signature, issuer, audience, expiry
+    Extracts the Bearer token from the Authorization header.
+    """
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise AuthError("Missing or invalid Authorization header")
+    return auth_header.split(" ", 1)[1]
+
+
+def validate_jwt(auth_header: str) -> dict:
+    """
+    Validates the JWT using Microsoft Entra ID JWKS.
     Returns decoded claims if valid, raises AuthError otherwise.
     """
     token = _get_bearer_token(auth_header)
@@ -43,17 +37,10 @@ def validate_jwt(auth_header: str) -> Dict[str, Any]:
             token,
             signing_key,
             algorithms=["RS256"],
-            audience=AUDIENCE,
-            issuer=ISSUER,
+            audience="732af741-d74a-44ce-bd01-1e6a76040b17",  # API App ID
+            options={"verify_exp": True},
         )
-
-        now = int(time.time())
-        if claims.get("exp") and now > claims["exp"]:
-            raise AuthError("Token expired")
-
         return claims
 
-    except jwt.ExpiredSignatureError:
-        raise AuthError("Token expired")
-    except jwt.InvalidTokenError as e:
-        raise AuthError(f"Invalid token: {str(e)}")
+    except Exception as e:
+        raise AuthError(f"JWT validation failed: {str(e)}")
